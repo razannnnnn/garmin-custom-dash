@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Garmin Dash — Ringkasan Kebugaran</title>
+<meta name="description" content="Dashboard kebugaran Garmin: kesiapan latihan, langkah, tidur, zona detak jantung, beban latihan, dan aktivitas dengan pratinjau rute dalam satu tampilan.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F3F5F6">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A1317">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F7B84'/%3E%3Cpath d='M12 34h10l5-12 8 22 6-14h11' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+--bg:#F3F5F6;--surface:#FFFFFF;--surface2:#F1F4F5;--ink:#0F1D23;--mute:#5A6E76;--faint:#8DA1A8;--line:#E3E9EB;--track:#E8EEF0;
+--accent:#0F7B84;--accent-deep:#0B5F66;
+--heart:#D6495A;--sleep:#5E5AD6;--batt:#4E9E63;--stress:#D08A2E;--run:#3E8FD8;
+--mapline:rgba(141,161,168,.2);
+--shadow:0 1px 2px rgba(15,29,35,.05),0 12px 32px -16px rgba(15,29,35,.18);
+--r-card:20px;--r-in:12px;
+color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--bg:#0A1317;--surface:#101C22;--surface2:#16242B;--ink:#E9F1F3;--mute:#8FA6AE;--faint:#5F767E;--line:#1D2E35;--track:#1B2A31;
+--accent:#3AC2B4;--accent-deep:#2AA396;
+--heart:#EF7A85;--sleep:#8F8AF2;--batt:#79C884;--stress:#E8A852;--run:#63ABEB;
+--mapline:rgba(95,118,126,.24);
+--shadow:0 1px 2px rgba(0,0,0,.25),0 14px 34px -18px rgba(0,0,0,.5);
+color-scheme:dark}}
+:root[data-theme="dark"]{
+--bg:#0A1317;--surface:#101C22;--surface2:#16242B;--ink:#E9F1F3;--mute:#8FA6AE;--faint:#5F767E;--line:#1D2E35;--track:#1B2A31;
+--accent:#3AC2B4;--accent-deep:#2AA396;
+--heart:#EF7A85;--sleep:#8F8AF2;--batt:#79C884;--stress:#E8A852;--run:#63ABEB;
+--mapline:rgba(95,118,126,.24);
+--shadow:0 1px 2px rgba(0,0,0,.25),0 14px 34px -18px rgba(0,0,0,.5);
+color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html{scroll-padding-top:76px}
+body{background:var(--bg);color:var(--ink);font-family:Geist,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14.5px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.num,.mono,.bignum{font-variant-numeric:tabular-nums}
+.mono{font-family:"Geist Mono",ui-monospace,monospace}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#fff;padding:10px 16px;border-radius:0 0 10px 0;z-index:100;font-weight:600}
+.skip:focus{left:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ---------- Top bar ---------- */
+.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:blur(16px) saturate(1.4);-webkit-backdrop-filter:blur(16px) saturate(1.4);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.tb-in{max-width:1120px;margin:0 auto;padding:10px clamp(16px,3vw,28px);display:flex;align-items:center;gap:12px}
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.mark{width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center}
+.mark svg{width:16px;height:16px}
+.bname{font-size:15px;letter-spacing:-.01em}
+.bname i{font-style:normal;font-weight:500;color:var(--mute)}
+.bname b{font-weight:800}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.sync{display:inline-flex;align-items:center;gap:8px;font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.02em;color:var(--mute)}
+.sync .dot{width:7px;height:7px;border-radius:50%;background:var(--batt);box-shadow:0 0 0 3px color-mix(in srgb,var(--batt) 20%,transparent)}
+.sync svg{width:13px;height:13px;color:var(--faint)}
+.iconbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--mute);display:grid;place-items:center;cursor:pointer;transition:background .18s,transform .12s,color .18s}
+.iconbtn:hover{background:var(--surface2);color:var(--ink)}
+.iconbtn:active{transform:scale(.94)}
+
+/* ---------- Layout & views ---------- */
+.wrap{max-width:1120px;margin:0 auto;padding:26px clamp(16px,3vw,28px) 64px;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+.view{display:none}
+.view.active{display:block}
+@media(min-width:900px){.view{display:block!important}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:20px;box-shadow:var(--shadow)}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.rise{animation:rise .55s cubic-bezier(.22,.8,.32,1) both;animation-delay:var(--d,0ms)}
+.eyebrow{font-family:"Geist Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.card-h{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:600;letter-spacing:-.01em;margin-bottom:16px;text-wrap:balance}
+.card-h svg{width:17px;height:17px;color:var(--faint)}
+.card-h span{margin-left:auto;font-family:"Geist Mono",monospace;font-weight:500;font-size:11px;color:var(--faint)}
+.vhead{margin:2px 0 18px}
+.vhead h2{font-size:clamp(1.25rem,1rem + 1.2vw,1.5rem);font-weight:750;letter-spacing:-.02em}
+.vhead p{font-size:13px;color:var(--mute);margin-top:2px}
+.feedwrap{max-width:620px;margin:0 auto;display:grid;gap:16px}
+
+/* ---------- Greeting ---------- */
+.greet{margin-bottom:20px}
+.greet h1{font-size:clamp(1.5rem,1rem + 2.2vw,1.95rem);font-weight:750;letter-spacing:-.025em;line-height:1.15;text-wrap:balance}
+.greet .sub{color:var(--mute);font-size:14px;margin-top:4px}
+
+/* ---------- Hero ---------- */
+.hero{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:880px){.hero{grid-template-columns:1.12fr .88fr}}
+.ready{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.ring{position:relative;width:158px;height:158px;flex:none;margin:6px auto}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:11;stroke-linecap:round}
+.ring .t{stroke:var(--track)}
+.ring .v{stroke:var(--accent);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--accent) 45%,transparent));transition:stroke-dashoffset 1.1s cubic-bezier(.22,.8,.32,1)}
+.ring .c{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:2px}
+.ring .bignum{font-size:2.7rem;font-weight:800;line-height:1;letter-spacing:-.03em}
+.ring small{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.08em;color:var(--faint)}
+.ready .txt{flex:1;min-width:230px}
+.ready h2{font-size:1.35rem;font-weight:750;letter-spacing:-.02em;margin:6px 0 6px}
+.ready p{color:var(--mute);font-size:14px;max-width:38ch}
+.srow{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:13px 0;border-top:1px solid var(--line)}
+.srow:first-of-type{border-top:0;padding-top:2px}
+.srow .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,transparent);color:var(--c)}
+.srow .l{font-size:13px;font-weight:550;color:var(--mute)}
+.srow .v{font-size:20px;font-weight:750;letter-spacing:-.02em}
+.srow .v small{font-size:11px;font-weight:500;color:var(--mute);margin-left:3px}
+.srow .side{grid-column:1/-1;font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--faint);margin-top:-6px}
+.srow .bar{grid-column:1/-1;margin-top:-4px}
+.snapwrap{padding-top:16px}
+
+/* ---------- Bars ---------- */
+.bar{height:6px;border-radius:99px;background:var(--track);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--c,var(--accent));width:0;transition:width .9s cubic-bezier(.22,.8,.32,1) .25s}
+.loaded .bar i{width:var(--p,0%)}
+
+/* ---------- Stat cards ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:14px;margin-top:16px}
+.stat{padding:16px}
+.stat-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.stat-top .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,transparent);color:var(--c)}
+.stat-top .ic svg{width:16px;height:16px}
+.stat-top .lbl{font-size:13px;font-weight:550;color:var(--mute)}
+.stat .num{font-size:1.65rem;font-weight:750;letter-spacing:-.02em;line-height:1.05}
+.stat .num small{font-family:Geist,sans-serif;font-size:11px;font-weight:500;color:var(--mute);margin-left:5px;letter-spacing:0}
+.stat .bar{margin-top:12px}
+
+/* ---------- Sections ---------- */
+.cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));margin-top:16px}
+
+/* Bar chart (langkah & tidur) */
+.week{position:relative;display:flex;align-items:flex-end;gap:8px;height:172px;padding-top:24px}
+.week .goal{position:absolute;left:0;right:0;border-top:1.5px dashed var(--faint);opacity:.55}
+.week .goal em{position:absolute;left:0;top:-20px;font-style:normal;font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--mute);background:var(--surface);padding:1px 6px;border-radius:5px;border:1px solid var(--line)}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;position:relative;z-index:1}
+.col button{width:100%;border:0;border-radius:9px 9px 5px 5px;background:color-mix(in srgb,var(--accent) 30%,var(--track));cursor:pointer;min-height:4px;height:0;transition:height .75s cubic-bezier(.22,.8,.32,1),filter .18s;transform-origin:bottom}
+.loaded .col button{height:var(--h)}
+.col button:hover,.col button:focus-visible{filter:brightness(1.12)}
+.col button:active{transform:scaleY(.97)}
+.col.today button{background:var(--accent)}
+.col span{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.08em;color:var(--faint);text-transform:uppercase}
+.col.today span{color:var(--accent);font-weight:600}
+.swk button{background:color-mix(in srgb,var(--sleep) 30%,var(--track))}
+.swk .today button{background:var(--sleep)}
+.swk .today span{color:var(--sleep)}
+.readout{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--mute);min-height:2.6em}
+.readout b{color:var(--ink);font-weight:650}
+
+/* Sleep */
+.sleephead{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+.sleephead .bignum{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;line-height:1}
+.sleephead span{color:var(--mute);font-size:13px}
+.stages{display:flex;height:14px;border-radius:99px;overflow:hidden;gap:3px;margin:16px 0 14px}
+.stages i{display:block;height:100%;border-radius:99px;width:0;transition:width .9s cubic-bezier(.22,.8,.32,1) .25s}
+.loaded .stages i{width:var(--p)}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;font-size:13px}
+.legend div{display:flex;align-items:center;gap:9px;color:var(--mute)}
+.legend i{width:9px;height:9px;border-radius:50%;flex:none}
+.legend b{color:var(--ink);margin-left:auto;font-weight:650}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.kv .l{font-family:"Geist Mono",monospace;font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:3px}
+.kv b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+@media(max-width:600px){.legend{grid-template-columns:1fr}}
+
+/* Zona jantung */
+.zone{display:grid;grid-template-columns:32px 1fr 62px;gap:12px;align-items:center;margin-bottom:13px}
+.zone:last-child{margin-bottom:0}
+.zone b{font-family:"Geist Mono",monospace;font-size:11px;font-weight:600;color:var(--faint)}
+.zone .bar{height:10px;margin:0}
+.zone .bar i{background:var(--c);transition-delay:calc(.15s + var(--n)*.06s)}
+.zone em{font-style:normal;font-family:"Geist Mono",monospace;font-size:11px;color:var(--mute);text-align:right}
+
+/* ---------- Feed aktivitas dengan peta ---------- */
+#acts{display:grid;gap:16px}
+@media(min-width:900px){#acts{max-width:620px;margin:0 auto}}
+.acard{padding:0;overflow:hidden}
+.amap{position:relative;height:150px;border-bottom:1px solid var(--line);background:repeating-linear-gradient(0deg,transparent 0 15px,var(--mapline) 15px 16px),repeating-linear-gradient(90deg,transparent 0 15px,var(--mapline) 15px 16px),var(--surface2)}
+.acard.big .amap{height:210px}
+.amap svg{position:absolute;inset:0;width:100%;height:100%}
+.road{stroke:var(--faint);opacity:.26;stroke-width:7;fill:none;stroke-linecap:round}
+.road.r2{stroke-width:5;opacity:.2}
+.rt{stroke:var(--accent);stroke-width:3.4;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--accent) 55%,transparent))}
+.pin.a{fill:var(--accent)}
+.pin.b{fill:var(--surface);stroke:var(--accent);stroke-width:1.4}
+.chip-km{position:absolute;left:10px;bottom:10px;font-size:10px;letter-spacing:.06em;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--surface) 86%,transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--line);color:var(--ink)}
+.abody{padding:16px 18px 18px}
+.acard.nomap .abody{padding:18px}
+.ahead{display:flex;align-items:center;gap:12px}
+.ahead .ic{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,transparent);color:var(--c);flex:none}
+.ahead h3{font-size:15.5px;font-weight:650;letter-spacing:-.01em}
+.ahead p{font-size:12.5px;color:var(--mute)}
+.tag{margin-left:auto;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);background:var(--surface2);padding:4px 9px;border-radius:7px}
+.acard .m{display:flex;gap:22px;padding-top:14px;margin-top:14px;border-top:1px solid var(--line);flex-wrap:wrap}
+.acard .m b{display:block;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.acard .m span{font-size:10.5px;color:var(--faint);font-family:"Geist Mono",monospace}
+.elevwrap{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.elev{width:100%;height:44px;display:block}
+.eline{stroke:var(--faint);stroke-width:1.6;fill:none}
+.earea{fill:color-mix(in srgb,var(--faint) 16%,transparent)}
+.elab{display:block;margin-top:6px;font-size:10px;letter-spacing:.06em;color:var(--faint)}
+
+/* Beban latihan */
+.load-grid{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:720px){.load-grid{grid-template-columns:repeat(3,1fr)}}
+.load-grid>div{background:var(--surface2);border-radius:var(--r-in);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.load-grid .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 13%,transparent);color:var(--c)}
+.load-grid .ic svg{width:15px;height:15px}
+.load-grid .l{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.load-grid .v{font-size:1.5rem;font-weight:750;letter-spacing:-.02em;line-height:1}
+.load-grid .v small{font-size:11px;color:var(--mute);font-weight:500}
+.pill{align-self:flex-start;display:inline-block;font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--batt) 15%,transparent);color:var(--batt);font-weight:600}
+.load-note{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:13.5px;color:var(--mute);max-width:72ch}
+
+footer{margin-top:32px;text-align:center;font-size:12.5px;color:var(--faint)}
+footer code{font-family:"Geist Mono",monospace;font-size:11.5px;background:var(--surface2);padding:2px 6px;border-radius:6px}
+
+/* ---------- Bottom tab bar (mobile) ---------- */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;justify-content:space-around;gap:4px;background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-top:1px solid var(--line);padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px))}
+.tabbar button{flex:1;max-width:128px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 4px 3px;border:0;background:none;color:var(--faint);font:inherit;font-size:10.5px;font-weight:550;letter-spacing:.01em;cursor:pointer;border-radius:14px;transition:color .18s}
+.tabbar button .ic{width:42px;height:26px;display:grid;place-items:center;border-radius:99px;transition:background .18s}
+.tabbar button svg{width:20px;height:20px}
+.tabbar button:active{transform:scale(.94)}
+.tabbar button.on{color:var(--accent);font-weight:600}
+.tabbar button.on .ic{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+@media(min-width:900px){.tabbar{display:none}}
+@media(max-width:899px){body{padding-bottom:calc(78px + env(safe-area-inset-bottom,0px))}.wrap{padding-bottom:34px}}
+
+@media(max-width:600px){
+.ready{gap:16px}
+.ring{width:138px;height:138px}
+}
+@media(max-width:480px){.sync .stxt{display:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.bar i,.stages i,.col button{width:var(--p,0%);height:var(--h,auto)}}
+</style>
+</head>
+<body>
+<a class="skip" href="#utama">Langsung ke konten</a>
+
+<!-- Icon sprite: Lucide (lucide.dev) — MIT license -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="act" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+<symbol id="foot" viewBox="0 0 24 24"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/></symbol>
+<symbol id="heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+<symbol id="moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+<symbol id="batt" viewBox="0 0 24 24"><path d="M15 7h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2"/><path d="M6 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1"/><path d="m11 7-3 5h4l-3 5"/><line x1="22" x2="22" y1="11" y2="13"/></symbol>
+<symbol id="flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+<symbol id="wind" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></symbol>
+<symbol id="route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+<symbol id="mtn" viewBox="0 0 24 24"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></symbol>
+<symbol id="zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+<symbol id="sync" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="trend" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></symbol>
+<symbol id="chart" viewBox="0 0 24 24"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="timer" viewBox="0 0 24 24"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></symbol>
+</defs>
+</svg>
+
+<header class="topbar">
+  <div class="tb-in">
+    <a class="brand" href="#" aria-label="Garmin Dash">
+      <span class="mark"><svg class="i" aria-hidden="true"><use href="#act"/></svg></span>
+      <span class="bname"><i>Garmin</i>&nbsp;<b>Dash</b></span>
+    </a>
+    <div class="tb-right">
+      <span class="sync"><i class="dot" aria-hidden="true"></i><svg class="i" aria-hidden="true"><use href="#sync"/></svg><span class="stxt">Garmin Connect API · <span id="sync">—</span></span></span>
+      <button class="iconbtn" id="themeBtn" aria-label="Ganti tema"><svg class="i" aria-hidden="true"><use id="themeIco" href="#moon"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<main id="utama" class="wrap">
+
+  <!-- ================= BERANDA ================= -->
+  <section class="view active" data-view="home" id="v-home">
+    <div class="greet rise" style="--d:0ms">
+      <h1 id="greet">Selamat pagi</h1>
+      <p class="sub" id="date"></p>
+    </div>
+
+    <section class="hero" aria-label="Ringkasan utama hari ini">
+      <article class="card ready rise" style="--d:60ms">
+        <div class="ring" role="img" aria-label="Skor kesiapan latihan">
+          <svg viewBox="0 0 120 120"><circle class="t" cx="60" cy="60" r="52"/><circle class="v" id="ringv" cx="60" cy="60" r="52"/></svg>
+          <div class="c"><span class="bignum" id="rscore">0</span><small>DARI 100</small></div>
+        </div>
+        <div class="txt">
+          <span class="eyebrow">Kesiapan latihan</span>
+          <h2 id="rlabel"></h2>
+          <p id="rnote"></p>
+        </div>
+      </article>
+
+      <article class="card rise snapwrap" style="--d:120ms">
+        <div class="card-h"><svg class="i" aria-hidden="true"><use href="#act"/></svg>Snapshot hari ini</div>
+        <div id="snap"></div>
+      </article>
+    </section>
+
+    <section class="stats" id="stats" aria-label="Statistik hari ini"></section>
+
+    <section class="cols">
+      <article class="card rise" style="--d:60ms">
+        <h2 class="card-h"><svg class="i" aria-hidden="true"><use href="#chart"/></svg>Langkah 7 hari<span id="wavg"></span></h2>
+        <div class="week" id="week"></div>
+        <p class="readout" id="readout">Ketuk batang untuk melihat detail hari.</p>
+      </article>
+    </section>
+  </section>
+
+  <!-- ================= AKTIVITAS ================= -->
+  <section class="view" data-view="acts" id="v-acts">
+    <div class="vhead rise" style="--d:0ms">
+      <h2>Aktivitas</h2>
+      <p>Rute dan detail sesi terbaru</p>
+    </div>
+    <div id="acts"></div>
+  </section>
+
+  <!-- ================= TIDUR ================= -->
+  <section class="view" data-view="sleep" id="v-sleep">
+    <div class="vhead rise" style="--d:0ms">
+      <h2>Tidur</h2>
+      <p>Kualitas semalam dan pola seminggu</p>
+    </div>
+    <div class="feedwrap">
+      <article class="card rise" style="--d:60ms">
+        <h2 class="card-h"><svg class="i" aria-hidden="true"><use href="#moon"/></svg>Tidur semalam</h2>
+        <div class="sleephead"><span class="bignum" id="sscore"></span><span id="stotal"></span></div>
+        <div class="stages" id="stages"></div>
+        <div class="legend" id="legend"></div>
+        <div class="kv" id="skv"></div>
+      </article>
+      <article class="card rise" style="--d:120ms">
+        <h2 class="card-h"><svg class="i" aria-hidden="true"><use href="#chart"/></svg>Tidur 7 malam<span id="swavg"></span></h2>
+        <div class="week swk" id="sweek"></div>
+        <p class="readout" id="sread">Ketuk batang untuk melihat detail malam.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= LATIHAN ================= -->
+  <section class="view" data-view="train" id="v-train">
+    <div class="vhead rise" style="--d:0ms">
+      <h2>Latihan</h2>
+      <p>Zona jantung, beban, dan pemulihan</p>
+    </div>
+    <section class="cols">
+      <article class="card rise" style="--d:60ms">
+        <h2 class="card-h"><svg class="i" aria-hidden="true"><use href="#heart"/></svg>Zona detak jantung<span>minggu ini</span></h2>
+        <div id="zones"></div>
+      </article>
+      <article class="card rise" style="--d:120ms;grid-column:1/-1">
+        <h2 class="card-h"><svg class="i" aria-hidden="true"><use href="#trend"/></svg>Beban latihan &amp; pemulihan<span>7 hari</span></h2>
+        <div class="load-grid" id="load"></div>
+        <p class="load-note" id="loadnote"></p>
+      </article>
+    </section>
+  </section>
+
+  <footer>Data contoh untuk pratinjau UI — di produksi, isi objek <code>D</code> dari Garmin Connect API (pemetaan ada di <code>mcp-config.md</code>).</footer>
+</main>
+
+<nav class="tabbar" aria-label="Navigasi bagian">
+  <button type="button" data-go="home" class="on" aria-current="page"><span class="ic"><svg class="i" aria-hidden="true"><use href="#home"/></svg></span>Beranda</button>
+  <button type="button" data-go="acts"><span class="ic"><svg class="i" aria-hidden="true"><use href="#route"/></svg></span>Aktivitas</button>
+  <button type="button" data-go="sleep"><span class="ic"><svg class="i" aria-hidden="true"><use href="#moon"/></svg></span>Tidur</button>
+  <button type="button" data-go="train"><span class="ic"><svg class="i" aria-hidden="true"><use href="#act"/></svg></span>Latihan</button>
+</nav>
+
+<script>
+// Struktur D mengikuti pemetaan tool MCP garmin_mcp (lihat mcp-config.md).
+// map: titik rute [x,y] dalam kotak 100x100 (normalisasi). null = aktivitas indoor (tanpa peta).
+const D={
+ user:"Auva",
+ sync:"07.42 WIB",
+ readiness:{score:82,label:"Siap latihan",note:"HRV stabil dan tidur cukup. Cocok untuk sesi aerobik intensitas menengah hari ini."},
+ snap:[
+  {i:"batt",c:"--batt",l:"Body Battery",v:"76",u:"%",p:.76},
+  {i:"heart",c:"--heart",l:"Detak istirahat",v:"54",u:"bpm",d:"−2 dgn rata-rata 7 hari"},
+  {i:"gauge",c:"--stress",l:"Stres rata-rata",v:"28",u:"/ 100",p:.28}
+ ],
+ stats:[
+  {i:"foot",c:"--accent",l:"Langkah",v:"8.742",u:"dari 10.000",p:.87},
+  {i:"moon",c:"--sleep",l:"Tidur",v:"7j 28m",u:"",p:.93},
+  {i:"flame",c:"--stress",l:"Kalori aktif",v:"2.310",u:"kkal",p:.77},
+  {i:"timer",c:"--run",l:"Intensitas",v:"96",u:"dari 150 mnt",p:.64},
+  {i:"act",c:"--heart",l:"HRV semalam",v:"64",u:"ms",p:.8},
+  {i:"wind",c:"--run",l:"VO₂ Max",v:"51",u:"ml/kg",p:.72}
+ ],
+ week:[{d:"Sen",v:9120},{d:"Sel",v:11340},{d:"Rab",v:7480},{d:"Kam",v:10210},{d:"Jum",v:6890},{d:"Sab",v:13560},{d:"Min",v:8742}],
+ goal:10000,
+ sleep:{score:84,total:"7j 28m",bed:"23.12",wake:"06.40",eff:"94%",
+  stages:[{n:"Dalam",m:92,c:"--sleep"},{n:"Ringan",m:238,c:"--run"},{n:"REM",m:104,c:"--accent"},{n:"Terjaga",m:14,c:"--stress"}],
+  week:[{d:"Sen",h:6.8,s:78},{d:"Sel",h:7.6,s:86},{d:"Rab",h:6.4,s:74},{d:"Kam",h:7.9,s:88},{d:"Jum",h:5.9,s:69},{d:"Sab",h:8.4,s:90},{d:"Min",h:7.47,s:84}]},
+ zones:[{z:"Z1",m:48,c:"#64A8B8"},{z:"Z2",m:132,c:"#3AA794"},{z:"Z3",m:61,c:"#93B83E"},{z:"Z4",m:27,c:"#E39A2D"},{z:"Z5",m:9,c:"#D65A5A"}],
+ acts:[
+  {i:"route",c:"--run",t:"Lari pagi",w:"Hari ini · 06.10",tag:"Lari",big:true,
+   a:[["8,4","km"],["5:30","/km"],["148","bpm"]],
+   map:[[20,70],[14,52],[20,34],[34,22],[52,16],[70,20],[84,32],[88,50],[80,66],[64,76],[46,80],[30,78],[20,70]],
+   elev:[8,10,14,12,18,22,20,26,30,28,34,32,38,36,40,38,42],elevNote:"Elevasi +64 m · titik tertinggi 112 m"},
+  {i:"mtn",c:"--batt",t:"Hiking",w:"Sabtu · 07.45",tag:"Hiking",
+   a:[["12,1","km"],["480","m naik"],["131","bpm"]],
+   map:[[12,85],[22,74],[26,62],[20,52],[30,42],[28,30],[40,22],[44,12],[56,8],[60,18],[52,26],[60,34],[72,30],[80,40],[88,52]]},
+  {i:"foot",c:"--accent",t:"Jalan sore",w:"Jumat · 17.30",tag:"Jalan",
+   a:[["4,2","km"],["11:20","/km"],["102","bpm"]],
+   map:[[30,64],[26,48],[36,36],[54,32],[70,38],[76,52],[66,66],[48,70],[30,64]]},
+  {i:"zap",c:"--heart",t:"Latihan kekuatan",w:"Kamis · 18.00",tag:"Kekuatan",
+   a:[["52","menit"],["410","kkal"],["118","bpm"]],map:null}
+ ],
+ load:{ctl:62,atl:48,tsb:14,status:"Segar",note:"Form positif: pemulihan berjalan lebih cepat dari akumulasi beban. Aman menambah volume atau satu sesi intensitas minggu ini."}
+};
+
+const $=id=>document.getElementById(id);
+const fmt=n=>n.toLocaleString("id-ID");
+const ico=(i,cls="i")=>`<svg class="${cls}" aria-hidden="true"><use href="#${i}"/></svg>`;
+
+/* ---------- Tema ---------- */
+const root=document.documentElement;
+if(!localStorage.getItem("gd-theme")&&matchMedia("(prefers-color-scheme: dark)").matches)root.dataset.theme="dark";
+else if(localStorage.getItem("gd-theme"))root.dataset.theme=localStorage.getItem("gd-theme");
+const effTheme=()=>root.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+function syncThemeBtn(){const dark=effTheme()==="dark";$("themeIco").setAttribute("href",dark?"#sun":"#moon");$("themeBtn").setAttribute("aria-label",dark?"Ganti ke tema terang":"Ganti ke tema gelap")}
+$("themeBtn").addEventListener("click",()=>{const nx=effTheme()==="dark"?"light":"dark";root.dataset.theme=nx;localStorage.setItem("gd-theme",nx);syncThemeBtn()});
+syncThemeBtn();
+
+/* ---------- Navigasi tab (mobile) ---------- */
+const armed={};
+function armRoutes(view){
+ if(armed[view])return;armed[view]=true;
+ document.querySelectorAll(`.view[data-view="${view}"] path.rt`).forEach((p,k)=>{
+  const L=p.getTotalLength();if(!L)return;
+  p.style.strokeDasharray=L;p.style.strokeDashoffset=L;
+  requestAnimationFrame(()=>setTimeout(()=>{
+   p.style.transition=`stroke-dashoffset .95s cubic-bezier(.22,.8,.32,1) ${k*110}ms`;
+   p.style.strokeDashoffset="0";
+  },60));
+ });
+}
+function go(id){
+ document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.dataset.view===id));
+ document.querySelectorAll(".tabbar button").forEach(b=>{
+  const on=b.dataset.go===id;b.classList.toggle("on",on);on?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current");
+ });
+ armRoutes(id);
+ window.scrollTo(0,0);
+}
+document.querySelectorAll(".tabbar button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
+
+/* ---------- Sapaan & tanggal ---------- */
+const h=new Date().getHours();
+const salam=h<4?"Selamat malam":h<11?"Selamat pagi":h<15?"Selamat siang":h<19?"Selamat sore":"Selamat malam";
+$("greet").textContent=`${salam}, ${D.user}`;
+$("date").textContent=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+$("sync").textContent=D.sync;
+
+/* ---------- Kesiapan latihan ---------- */
+const R=D.readiness,C=2*Math.PI*52,rv=$("ringv");
+rv.style.strokeDasharray=C;rv.style.strokeDashoffset=C;
+$("rlabel").textContent=R.label;$("rnote").textContent=R.note;
+function countUp(el,to,ms=900){const t0=performance.now();const f=t=>{const k=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-k,3);el.textContent=Math.round(to*e);if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
+requestAnimationFrame(()=>setTimeout(()=>{rv.style.strokeDashoffset=C*(1-R.score/100);countUp($("rscore"),R.score)},120));
+
+/* ---------- Snapshot ---------- */
+$("snap").innerHTML=D.snap.map(s=>`<div class="srow" style="--c:var(${s.c})">
+<span class="ic">${ico(s.i)}</span>
+<div><div class="l">${s.l}</div><div class="v">${s.v}<small>${s.u}</small></div></div>
+${s.p?`<div class="bar" style="--c:var(${s.c});width:96px"><i style="--p:${Math.round(s.p*100)}%"></i></div>`:""}
+${s.d?`<div class="side">${s.d}</div>`:""}
+</div>`).join("");
+
+/* ---------- Kartu statistik ---------- */
+$("stats").innerHTML=D.stats.map((s,i)=>`<article class="card stat rise" style="--c:var(${s.c});--d:${140+i*45}ms">
+<div class="stat-top"><span class="ic">${ico(s.i)}</span><span class="lbl">${s.l}</span></div>
+<div class="num">${s.v}${s.u?`<small>${s.u}</small>`:""}</div>
+<div class="bar" style="--c:var(${s.c})"><i style="--p:${Math.round(s.p*100)}%"></i></div>
+</article>`).join("");
+
+/* ---------- Langkah mingguan ---------- */
+const max=Math.max(D.goal,...D.week.map(w=>w.v))*1.1,H=132;
+const avg=Math.round(D.week.reduce((a,w)=>a+w.v,0)/D.week.length);
+$("wavg").textContent="rerata "+fmt(avg);
+$("week").innerHTML=`<div class="goal" style="bottom:${32+H*D.goal/max}px"><em>target ${fmt(D.goal)}</em></div>`+
+ D.week.map((w,i)=>`<div class="col${i===D.week.length-1?" today":""}"><button style="--h:${Math.max(4,H*w.v/max)}px" data-i="${i}" aria-label="${w.d}: ${fmt(w.v)} langkah"></button><span>${w.d}</span></div>`).join("");
+$("week").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const w=D.week[b.dataset.i];const pct=Math.round(w.v/D.goal*100);
+ $("readout").innerHTML=`<b>${w.d}</b> · ${fmt(w.v)} langkah — <b>${pct}%</b> dari target${w.v>=D.goal?" · tercapai":` (kurang ${fmt(D.goal-w.v)})`}`});
+
+/* ---------- Tidur ---------- */
+const S=D.sleep,tot=S.stages.reduce((a,s)=>a+s.m,0);
+$("sscore").textContent=S.score;$("stotal").textContent=`skor tidur · total ${S.total}`;
+$("stages").innerHTML=S.stages.map(s=>`<i style="--p:${(s.m/tot*100).toFixed(1)}%;background:var(${s.c})" title="${s.n}"></i>`).join("");
+$("legend").innerHTML=S.stages.map(s=>`<div><i style="background:var(${s.c})"></i>${s.n}<b>${Math.floor(s.m/60)}j ${String(s.m%60).padStart(2,"0")}m</b></div>`).join("");
+$("skv").innerHTML=`<div><span class="l">Tidur</span><b>${S.bed}</b></div><div><span class="l">Bangun</span><b>${S.wake}</b></div><div><span class="l">Efisiensi</span><b>${S.eff}</b></div>`;
+const sgoal=8,smax=Math.max(sgoal,...S.week.map(w=>w.h))*1.12,H2=110;
+const savg=S.week.reduce((a,w)=>a+w.h,0)/S.week.length;
+$("swavg").textContent=`rerata ${Math.floor(savg)}j ${Math.round(savg%1*60)}m`;
+$("sweek").innerHTML=`<div class="goal" style="bottom:${32+H2*sgoal/smax}px"><em>target ${sgoal} j</em></div>`+
+ S.week.map((w,i)=>`<div class="col${i===S.week.length-1?" today":""}"><button style="--h:${Math.max(4,H2*w.h/smax)}px" data-i="${i}" aria-label="${w.d}: tidur ${Math.floor(w.h)} jam ${Math.round(w.h%1*60)} menit"></button><span>${w.d}</span></div>`).join("");
+$("sweek").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const w=S.week[b.dataset.i];
+ $("sread").innerHTML=`<b>${w.d}</b> · ${Math.floor(w.h)}j ${Math.round(w.h%1*60)}m — skor <b>${w.s}</b>`});
+
+/* ---------- Zona jantung ---------- */
+const zm=Math.max(...D.zones.map(z=>z.m));
+$("zones").innerHTML=D.zones.map((z,n)=>`<div class="zone" style="--c:${z.c};--n:${n}"><b>${z.z}</b><div class="bar"><i style="--p:${Math.round(z.m/zm*100)}%"></i></div><em>${z.m} mnt</em></div>`).join("");
+
+/* ---------- Feed aktivitas + peta rute ---------- */
+function smoothPath(p){
+ let d=`M ${p[0][0]} ${p[0][1]}`;
+ for(let i=0;i<p.length-1;i++){
+  const p0=p[Math.max(0,i-1)],p1=p[i],p2=p[i+1],p3=p[Math.min(p.length-1,i+2)];
+  const c1=[p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6];
+  const c2=[p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6];
+  d+=` C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)},${c2[0].toFixed(1)} ${c2[1].toFixed(1)},${p2[0]} ${p2[1]}`;
+ }
+ return d;
+}
+function elevPaths(a){
+ const mn=Math.min(...a),mx=Math.max(...a),rg=mx-mn||1,W=100,Ht=28,pad=3;
+ const pts=a.map((v,i)=>[(i/(a.length-1)*W).toFixed(1),(Ht-pad-((v-mn)/rg)*(Ht-pad*2)).toFixed(1)]);
+ const line="M "+pts.map(p=>p.join(" ")).join(" L ");
+ return `<path class="earea" d="${line} L 100 ${Ht} L 0 ${Ht} Z"/><path class="eline" d="${line}" vector-effect="non-scaling-stroke"/>`;
+}
+$("acts").innerHTML=D.acts.map((a,i)=>{
+ const map=a.map?`<div class="amap">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+   <path class="road" d="M-2 64 H102"/><path class="road r2" d="M34 -2 V102"/>
+   <path class="rt" d="${smoothPath(a.map)}"/>
+   <circle class="pin a" cx="${a.map[0][0]}" cy="${a.map[0][1]}" r="2.8"/>
+   <circle class="pin b" cx="${a.map[a.map.length-1][0]}" cy="${a.map[a.map.length-1][1]}" r="2.4"/>
+  </svg>
+  <span class="chip-km mono">${a.a[0][0]} ${a.a[0][1]}</span>
+ </div>`:"";
+ const elev=(a.big&&a.elev)?`<div class="elevwrap"><svg class="elev" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">${elevPaths(a.elev)}</svg><span class="elab mono">${a.elevNote}</span></div>`:"";
+ return `<article class="card acard rise ${a.big?"big":""} ${a.map?"":"nomap"}" style="--c:var(${a.c});--d:${i*70}ms">
+ ${map}
+ <div class="abody">
+  <div class="ahead"><span class="ic">${ico(a.i)}</span><div><h3>${a.t}</h3><p>${a.w}</p></div><span class="tag mono">${a.tag}</span></div>
+  <div class="m">${a.a.map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join("")}</div>
+  ${elev}
+ </div>
+ </article>`;
+}).join("");
+
+/* ---------- Beban latihan ---------- */
+const L=D.load;
+$("load").innerHTML=`
+<div style="--c:var(--accent)"><span class="ic">${ico("trend")}</span><span class="l">CTL · Kebugaran</span><span class="v">${L.ctl}<small> / 100</small></span></div>
+<div style="--c:var(--stress)"><span class="ic">${ico("flame")}</span><span class="l">ATL · Kelelahan</span><span class="v">${L.atl}<small> / 100</small></span></div>
+<div style="--c:var(--batt)"><span class="ic">${ico("zap")}</span><span class="l">TSB · Form</span><span class="v">${L.tsb>0?"+":""}${L.tsb}</span><span class="pill">${L.status}</span></div>`;
+$("loadnote").textContent=L.note;
+
+/* ---------- Picu animasi ---------- */
+requestAnimationFrame(()=>setTimeout(()=>document.body.classList.add("loaded"),80));
+if(matchMedia("(min-width:900px)").matches)armRoutes("acts");
+</script>
+</body>
+</html>
