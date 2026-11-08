@@ -2300,6 +2300,43 @@ footer .sep {
   color: var(--mute);
   margin-top: 2px;
 }
+.connect-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-bottom: 4px;
+  border-bottom: var(--hair);
+  margin-bottom: 2px;
+}
+.connect-accounts > span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mute);
+}
+.connect-accounts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.connect-accounts button {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: var(--hair);
+  background: var(--surface2);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.connect-accounts button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.connect-accounts button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .connect-form {
   display: flex;
   flex-direction: column;

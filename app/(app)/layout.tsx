@@ -1,7 +1,7 @@
 // app/(app)/layout.tsx — shell: sidebar desktop + bottom nav mobile
 //
-// Layout ini membaca cookie (status login) jadi harus dirender per-request. Tanpa
-// `connection()` Next.js mencoba mem-prerender-nya saat build; di build tidak ada
+// Layout ini membaca cookie sesi dan database, jadi harus dirender per-request.
+// Tanpa `connection()` Next.js mem-prerender-nya saat build; di build tidak ada
 // cookie (selalu "belum login") sehingga redirect ke /connect menempel ke semua
 // halaman di bawahnya.
 
@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="shell">
       <Sidebar />
       <div className="shell-main">
-        <TopBar userName={state.name.split(/\s+/)[0]} />
+        <TopBar userName={state.name.split(/\s+/)[0]} account={state.email} />
         <main id="utama" className="wrap">
           {children}
         </main>

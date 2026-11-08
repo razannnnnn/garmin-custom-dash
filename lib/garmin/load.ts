@@ -2,7 +2,7 @@
 //
 // Access token Garmin berputar (refresh) di tengah pemakaian, tapi Server Component
 // tidak boleh menulis cookie. Jadi fungsi ini hanya menyediakan klien; penyimpanan
-// token hasil refresh dilakukan route handler lewat `flush()`.
+// token hasil refresh dilakukan route handler lewat `persistTokens()`.
 
 import type { Garmin } from "garminconnect-js";
 import { garmin } from "./client";

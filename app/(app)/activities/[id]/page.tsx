@@ -1,10 +1,9 @@
 // app/(app)/activities/[id]/page.tsx — detail aktivitas gaya Strava
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ActivityDetailView } from "./ActivityDetailView";
-import { NotConnected } from "@/components/shell/NotConnected";
 import { GarminNotConnected } from "@/lib/garmin/client";
 import { connection } from "next/server";
 import { unstable_noStore as noStore } from "next/cache";
@@ -27,7 +26,7 @@ export default async function ActivityPage({ params }: { params: Promise<{ id: s
     data = await load(id);
   } catch (err) {
     if (err instanceof GarminNotConnected) {
-      return <NotConnected expired={err.reason === "expired"} />;
+      redirect(err.reason === "expired" ? "/connect?expired=1" : "/connect");
     }
     throw err;
   }

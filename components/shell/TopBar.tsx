@@ -35,7 +35,7 @@ function applyTheme(choice: ThemeChoice) {
   document.cookie = `gd-theme=${choice}; path=/; max-age=31536000; samesite=lax`;
 }
 
-export function TopBar({ userName }: { userName: string }) {
+export function TopBar({ userName, account }: { userName: string; account?: string }) {
   const [theme, setTheme] = useState<ThemeChoice>("system");
   const [syncLabel, setSyncLabel] = useState<string | null>(null);
 
@@ -76,7 +76,7 @@ export function TopBar({ userName }: { userName: string }) {
         </Link>
 
         <div className="tb-right">
-          <span className="sync">
+          <span className="sync" title={account ? `Masuk sebagai ${account}` : undefined}>
             <span className="dot" aria-hidden="true" />
             <span className="stxt">
               {userName}

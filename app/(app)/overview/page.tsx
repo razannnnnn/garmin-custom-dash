@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import { unstable_noStore as noStore } from "next/cache";
 import { OverviewView } from "./OverviewView";
-import { NotConnected } from "@/components/shell/NotConnected";
 import { GarminNotConnected } from "@/lib/garmin/client";
 import { withGarmin } from "@/lib/garmin/load";
 import { fetchOverview } from "@/lib/garmin/overview";
@@ -26,7 +26,7 @@ export default async function OverviewPage() {
     data = await load();
   } catch (err) {
     if (err instanceof GarminNotConnected) {
-      return <NotConnected expired={err.reason === "expired"} />;
+      redirect(err.reason === "expired" ? "/connect?expired=1" : "/connect");
     }
     throw err;
   }

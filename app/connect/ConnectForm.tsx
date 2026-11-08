@@ -7,11 +7,17 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 
-type Stage = "credentials" | "mfa" | "done";
+type Stage = "credentials" | "mfa";
 
 const EASE = [0.22, 0.8, 0.32, 1] as const;
 
-export function ConnectForm() {
+interface Account {
+  id: string;
+  email: string;
+  name: string | null;
+}
+
+export function ConnectForm({ accounts = [] }: { accounts?: Account[] }) {
   const router = useRouter();
   const reduce = useReducedMotion();
 
@@ -33,7 +39,7 @@ export function ConnectForm() {
         body: JSON.stringify(payload),
       });
 
-      let data: { error?: string; mfaRequired?: boolean; method?: string; name?: string } = {};
+      let data: { error?: string; mfaRequired?: boolean; method?: string } = {};
       try {
         data = await res.json();
       } catch {
@@ -50,29 +56,15 @@ export function ConnectForm() {
         setStage("mfa");
         return;
       }
-      setStage("done");
+
+      // Sesi sudah aktif di server; langsung ke dasbor.
+      router.replace("/overview");
       router.refresh();
-      setTimeout(() => router.push("/overview"), 900);
     } catch {
       setError("Tidak dapat menghubungi server");
     } finally {
       setBusy(false);
     }
-  }
-
-  if (stage === "done") {
-    return (
-      <motion.div
-        className="connect-done"
-        initial={reduce ? false : { opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.35, ease: EASE }}
-      >
-        <ShieldCheck size={28} aria-hidden="true" />
-        <b>Terhubung ke Garmin</b>
-        <span>Membuka ringkasan…</span>
-      </motion.div>
-    );
   }
 
   return (
@@ -86,6 +78,26 @@ export function ConnectForm() {
     >
       {stage === "credentials" ? (
         <>
+          {accounts.length > 0 ? (
+            <div className="connect-accounts">
+              <span>Pilih akun tersimpan</span>
+              <div>
+                {accounts.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => {
+                      setEmail(a.email);
+                      setError(null);
+                    }}
+                  >
+                    {a.name ?? a.email}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <label className="field">
             <span>
               <Mail size={14} aria-hidden="true" /> Email Garmin
@@ -137,10 +149,16 @@ export function ConnectForm() {
       )}
 
       {error ? (
-        <p className="connect-error" role="alert">
+        <motion.p
+          className="connect-error"
+          role="alert"
+          initial={reduce ? false : { opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: EASE }}
+        >
           <AlertCircle size={15} aria-hidden="true" />
           {error}
-        </p>
+        </motion.p>
       ) : null}
 
       <button type="submit" className="btn-primary" disabled={busy}>

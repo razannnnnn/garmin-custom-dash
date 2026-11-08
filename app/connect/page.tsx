@@ -1,11 +1,26 @@
 // app/connect/page.tsx — halaman login Garmin
 
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { unstable_noStore as noStore } from "next/cache";
 import { ShieldCheck } from "lucide-react";
 import { ConnectForm } from "./ConnectForm";
+import { connectionState } from "@/lib/garmin/client";
+import { listAccounts } from "@/lib/garmin/credential-store";
 
 export const metadata = {
   title: "Hubungkan Garmin — Garmin Dash",
 };
+
+async function load() {
+  await connection();
+  noStore();
+
+  const state = await connectionState();
+  if (state.connected) redirect("/overview");
+
+  return listAccounts().catch(() => []);
+}
 
 export default async function ConnectPage({
   searchParams,
@@ -14,6 +29,7 @@ export default async function ConnectPage({
 }) {
   const { expired } = await searchParams;
   const isExpired = expired === "1";
+  const accounts = await load();
 
   return (
     <main className="connectwrap">
@@ -37,20 +53,19 @@ export default async function ConnectPage({
             <h1>{isExpired ? "Sesi Garmin berakhir" : "Hubungkan Garmin"}</h1>
             <p>
               {isExpired
-                ? "Token akses Garmin di browser ini sudah tidak berlaku. Masuk ulang untuk melanjutkan — data Anda tidak hilang."
+                ? "Token akses Garmin sudah tidak berlaku. Masuk ulang untuk melanjutkan — data Anda tidak hilang."
                 : "Masuk dengan akun Garmin Connect Anda untuk membaca seluruh data."}
             </p>
           </div>
         </div>
 
-        <ConnectForm />
+        <ConnectForm accounts={accounts} />
 
         <div className="connectnote">
           <ShieldCheck size={14} aria-hidden="true" />
           <span>
-            Kredensial dikirim langsung ke Garmin lewat HTTPS dan tidak disimpan. Yang disimpan hanya
-            token akses, terenkripsi di cookie browser Anda sendiri — tidak ada file token di server,
-            dan JavaScript halaman tidak bisa membacanya.
+            Kredensial dikirim langsung ke Garmin lewat HTTPS dan tidak pernah disimpan. Yang
+            tersimpan hanya token akses hasil login, terenkripsi di database — bukan di browser.
           </span>
         </div>
       </div>

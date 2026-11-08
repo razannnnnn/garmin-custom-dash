@@ -1,7 +1,7 @@
 // app/api/garmin/gpx/[id]/route.ts — unduh file GPX asli dari Garmin Connect
 
 import { NextResponse } from "next/server";
-import { flush } from "@/lib/garmin/client";
+import { persistTokens } from "@/lib/garmin/client";
 import { withGarmin } from "@/lib/garmin/load";
 
 export async function GET(
@@ -29,6 +29,6 @@ export async function GET(
       { status: 500 }
     );
   } finally {
-    await flush().catch(() => null);
+    await persistTokens().catch(() => null);
   }
 }
