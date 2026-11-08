@@ -125,11 +125,11 @@ Browser ──► proxy.ts          cek cookie ada? kalau tidak → /connect
 
 Tiga keputusan yang membentuk arsitekturnya:
 
-**1. Token di cookie, bukan di disk.**
-Login menghasilkan token OAuth Garmin. Token itu dienkripsi **AES-256-GCM**, dipecah
-menjadi beberapa cookie `httpOnly` (token Garmin ±3,2 KB — melewati batas satu cookie),
-lalu dikirim bolak-balik oleh browser. Tidak ada state sesi di server, jadi aplikasi
-stateless dan aman di-deploy ke serverless.
+**1. Token di database, sesi di cookie.**
+Login menghasilkan token OAuth Garmin. Token itu dienkripsi **AES-256-GCM** lalu
+disimpan di tabel `garmin_credentials` (Supabase). Cookie browser hanya berisi UUID
+baris itu, jadi cookie tetap kecil, token tidak pernah menyentuh browser, dan satu
+akun bisa dipakai dari beberapa perangkat sekaligus.
 
 **2. Halaman di bawah `(app)` tidak pernah di-prerender.**
 Data ditentukan oleh cookie pengunjung. Kalau Next.js mem-prerender shell saat build,
@@ -187,7 +187,9 @@ Buka <http://localhost:3000>, lalu masuk dengan akun Garmin Anda di halaman `/co
 
 | Nama | Wajib | Keterangan |
 |---|:---:|---|
-| `GARMIN_TOKEN_SECRET` | ✅ | Kunci enkripsi token di cookie. **Minimal 32 karakter acak.** Buat dengan `openssl rand -base64 48`. Kalau diubah, semua pengguna harus login ulang. |
+| `GARMIN_TOKEN_SECRET` | ✅ | Kunci enkripsi token sebelum masuk database. **Minimal 32 karakter acak.** Buat dengan `openssl rand -base64 48`. Kalau diubah, semua akun harus login ulang. |
+| `SUPABASE_URL` | ✅ | URL proyek Supabase, mis. `https://xxxx.supabase.co`. |
+| `SUPABASE_SECRET_KEY` | ✅ | Secret key Supabase (melewati RLS). **Hanya untuk server.** Dashboard → Project Settings → API Keys → Secret keys. |
 
 > `.env.local` **tidak** ikut ter-commit (lihat `.gitignore`). Gunakan
 > `.env.example` sebagai templat. Jangan pernah menaruh nilai asli di `.env.example`.
@@ -211,7 +213,8 @@ app/
 proxy.ts                      # gerbang login sebelum render
 lib/garmin/
 ├── client.ts                 # klien Garmin (cache per-request)
-├── cookie-store.ts           # TokenStore: enkripsi + pecah cookie
+├── credential-store.ts       # TokenStore: enkripsi + simpan ke Supabase
+├── session.ts                # cookie sesi (UUID kredensial)
 ├── overview.ts               # susun data Overview
 ├── analytics.ts              # susun data Analytics
 ├── activities.ts             # daftar & detail sesi
@@ -229,7 +232,9 @@ docs/                         # dokumentasi teknis mendalam
 
 | Aspek | Penerapan |
 |---|---|
-| Token OAuth | Enkripsi **AES-256-GCM**, cookie `httpOnly` + `secure` (produksi) + `SameSite=Lax` |
+| Token OAuth | Enkripsi **AES-256-GCM** di database; cookie sesi `httpOnly` + `secure` + `SameSite=Lax` |
+| Akses database | RLS aktif tanpa policy; `grant` dicabut dari `anon` & `authenticated`. Publishable key ditolak untuk SELECT/INSERT/DELETE (HTTP 401) |
+| Secret key | Hanya dibaca di server, tidak pernah dikirim ke browser |
 | Kredensial | Dikirim langsung ke Garmin lewat HTTPS; **tidak pernah disimpan** |
 | Kebocoran antar-pengguna | `proxy.ts` + `connection()` + `noStore()` mencegah cache lintas sesi |
 | Rahasia di repo | `.env*` dan `.garmin-tokens/` diabaikan Git; `.env.example` tanpa nilai |
@@ -305,7 +310,7 @@ ruang, Garmin Dash memakai polyline dari detail aktivitas, dengan fallback ke GP
 
 ## Keterbatasan
 
-- **Token di cookie berarti per-browser.** Login di perangkat lain perlu dilakukan terpisah.
+- **Token disimpan per akun di database**, jadi satu akun bisa dipakai dari beberapa perangkat.
 - **Tidak ada basis data.** Riwayat hanya sebatas yang dikembalikan API Garmin.
 - **Satu pengguna per sesi browser.** Cocok untuk pemakaian pribadi, bukan multi-tenant.
 - **Halaman Coach belum aktif** — masih berupa pratinjau.
