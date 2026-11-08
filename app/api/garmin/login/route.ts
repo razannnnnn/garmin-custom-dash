@@ -10,7 +10,7 @@ import type { MfaState } from "garminconnect-js";
 import { resetGarmin } from "@/lib/garmin/client";
 import { saveCredential, normalizeEmail } from "@/lib/garmin/credential-store";
 import { writeSession } from "@/lib/garmin/session";
-import { SupabaseNotConfigured } from "@/lib/supabase/admin";
+import { adminClient, SupabaseNotConfigured } from "@/lib/supabase/admin";
 import { TokenSecretMissing, TokenSecretInvalid } from "@/lib/garmin/credential-store";
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -68,6 +68,16 @@ export async function POST(req: Request) {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Body bukan JSON" }, { status: 400, headers: NO_STORE });
+  }
+
+  // Periksa konfigurasi lebih dulu: kalau secret/DB belum siap, jangan buang
+  // percobaan login ke Garmin yang punya rate limit ketat.
+  try {
+    adminClient();
+  } catch (err) {
+    const handled = knownError(err);
+    if (handled) return handled;
+    throw err;
   }
 
   const client = new GarminClient();
