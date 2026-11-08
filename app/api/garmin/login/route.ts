@@ -91,6 +91,19 @@ export async function POST(req: Request) {
     revalidateTag("garmin", { expire: 0 });
 
     const profile = await new Garmin(client).getUserProfile();
+
+    // Pastikan token benar-benar tersimpan. Tanpa ini login bisa "sukses" tapi
+    // browser tidak menerima cookie, sehingga pengguna terlempar balik ke /connect.
+    if (!client.getTokens()) {
+      return NextResponse.json(
+        {
+          error:
+            "Garmin menerima login, tetapi token gagal disimpan ke browser. Pastikan situs diakses lewat HTTPS dan cookie tidak diblokir.",
+        },
+        { status: 500, headers: NO_STORE }
+      );
+    }
+
     return NextResponse.json(
       { ok: true, name: profile?.fullName ?? "Pengguna Garmin" },
       { headers: NO_STORE }
@@ -98,7 +111,31 @@ export async function POST(req: Request) {
   } catch (err) {
     const handled = storeError(err);
     if (handled) return handled;
+
     const message = err instanceof Error ? err.message : "galat tidak diketahui";
+
+    // Garmin membatasi percobaan login (biasanya 429 atau 401 pada rute SSO).
+    // Beri tahu pengguna untuk menunggu, bukan sekadar "login gagal".
+    if (/rate limit|429|too many requests/i.test(message)) {
+      return NextResponse.json(
+        {
+          error:
+            "Garmin membatasi percobaan login dari server ini. Tunggu ±15–30 menit lalu coba lagi, atau login lewat aplikasi Garmin untuk memastikan akun tidak terkunci sementara.",
+        },
+        { status: 429, headers: NO_STORE }
+      );
+    }
+
+    if (/not authorized.*sso\/signin|(401)/i.test(message)) {
+      return NextResponse.json(
+        {
+          error:
+            "Garmin menolak login ini (401). Biasanya karena percobaan berulang terlalu cepat — tunggu beberapa menit, lalu pastikan email & password benar.",
+        },
+        { status: 401, headers: NO_STORE }
+      );
+    }
+
     return NextResponse.json(
       { error: `Login Garmin gagal: ${message}` },
       { status: 401, headers: NO_STORE }

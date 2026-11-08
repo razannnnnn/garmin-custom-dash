@@ -24,7 +24,7 @@ const MAX_AGE = 60 * 60 * 24 * 400; // 400 hari, batas maksimum umur cookie di C
 export class TokenSecretMissing extends Error {
   constructor() {
     super(
-      "GARMIN_TOKEN_SECRET belum di-set. Set ke string acak ≥32 karakter, mis. `openssl rand -base64 48`."
+      "GARMIN_TOKEN_SECRET belum di-set di server. Tambahkan sebagai Environment Variable (minimal 32 karakter acak) lalu redeploy."
     );
     this.name = "TokenSecretMissing";
   }

@@ -32,10 +32,17 @@ export function ConnectForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+
+      let data: { error?: string; mfaRequired?: boolean; method?: string; name?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        // Server bisa membalas HTML (mis. 500 dari runtime), bukan JSON.
+        data = { error: `Server membalas ${res.status} tanpa detail.` };
+      }
 
       if (!res.ok) {
-        setError(data.error ?? "Login gagal");
+        setError(data.error ?? `Login gagal (HTTP ${res.status})`);
         return;
       }
       if (data.mfaRequired) {
